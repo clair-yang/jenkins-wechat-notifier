@@ -5,16 +5,24 @@ import com.huangmb.jenkins.wechat.bean.CustomGroup;
 import com.huangmb.jenkins.wechat.bean.Receiver;
 import hudson.EnvVars;
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.ExtensionPoint;
 import hudson.Launcher;
+import hudson.model.Run;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Result;
+import hudson.model.TaskListener;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
+import hudson.model.AbstractProject;
 import jenkins.model.Jenkins;
+import jenkins.tasks.SimpleBuildStep;
+import hudson.tasks.BuildStepDescriptor;
+import hudson.tasks.Publisher;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -30,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class WechatNotifier extends Notifier {
+public class WechatNotifier extends Notifier implements SimpleBuildStep {
     private transient Set<String> userSet = new HashSet<>();
     private transient Set<String> partySet = new HashSet<>();
     private transient Set<String> tagSet = new HashSet<>();
@@ -94,6 +102,14 @@ public class WechatNotifier extends Notifier {
         return (WechatNotifierDescriptor) super.getDescriptor();
     }
 
+    @Override
+    public void perform(@NonNull Run<?, ?> build,
+                        @NonNull FilePath ws,
+                        @NonNull Launcher launcher,
+                        @NonNull TaskListener listener) throws InterruptedException, IOException {
+        this.perform(build, launcher, listener);
+    }
+
 
     @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
@@ -143,6 +159,20 @@ public class WechatNotifier extends Notifier {
             logger.println("微信通知发送失败: " + e.getMessage());
         }
         return true;
+    }
+
+    @Extension
+    public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
+
+        @Override
+        public boolean isApplicable(Class<? extends AbstractProject> aClass) {
+            return true;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return "WechatNotifier";
+        }
     }
 
     /**
